@@ -1,8 +1,8 @@
 package func.stream;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.sql.Array;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
 
@@ -18,9 +18,48 @@ import java.util.function.*;
 
 public class SimpleStream<T> {
     public static void main(String[] args) {
-        Integer reduce = SimpleStream.of(List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10))
-                .reduce(0, Integer::max);
-        System.out.println(reduce);
+//        Integer reduce = SimpleStream.of(List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10))
+//                .reduce(0, Integer::max);
+//        System.out.println(reduce);
+
+        ArrayList<Integer> list = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            list.add(i);
+        }
+
+        list.add(9);
+        list.add(2);
+        list.add(3);
+
+//        HashSet result = SimpleStream.of(list).collect(HashSet::new, HashSet::add);
+//
+//        result.forEach(System.out::println);
+//
+//        ArrayList<String> list1 = new ArrayList<>();
+//        list1.add("hello"); list1.add(" world!");
+//
+//        StringBuilder result1 = SimpleStream.of(list1).collect(StringBuilder::new, StringBuilder::append);
+//
+//        System.out.println(result1);
+//
+//        StringJoiner result2 = SimpleStream.of(list1).collect(() -> new StringJoiner("-"), StringJoiner::add);
+//        System.out.println(result2);
+
+//        HashMap<Integer, Integer> result3 = SimpleStream.of(list).collect(HashMap<Integer, Integer>::new, (a, b) -> {
+//            a.put(b, a.containsKey(b) ? a.get(b) + 1 : 1);
+//        });
+//
+//        result3.forEach((a, b) -> {
+//            System.out.println(a + ": " + b);
+//        });
+
+        HashMap<Integer, AtomicInteger> result3 = SimpleStream.of(list).collect(HashMap<Integer, AtomicInteger>::new, (map, t) -> {
+            map.computeIfAbsent(t, k -> new AtomicInteger()).getAndIncrement();
+        });
+
+        result3.forEach((a, b) -> {
+            System.out.println(a + ": " + b);
+        });
     }
 
     public static <T> SimpleStream<T> of(Collection<T> collection) {
@@ -42,6 +81,7 @@ public class SimpleStream<T> {
         });
         return new SimpleStream<>(result);
     }
+
     public void forEach(Consumer<T> consumer) {
         collection.forEach(t -> consumer.accept(t));
     }
@@ -53,7 +93,19 @@ public class SimpleStream<T> {
         });
         return result.get();
     }
+
+    public <C> C collect(Supplier<C> supplier, BiConsumer<C, T> biConsumer) {
+        C c = supplier.get();
+
+        collection.forEach(e -> {
+            biConsumer.accept(c, e);
+        });
+
+        return c;
+    }
+
     private Collection<T> collection;
+
     public SimpleStream(Collection<T> collection) {
         this.collection = collection;
     }
